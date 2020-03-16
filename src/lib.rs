@@ -1,5 +1,4 @@
 pub mod walker {
-    use regex::Regex;
     use std::collections::VecDeque;
     use std::fs;
     use std::fs::{Metadata, ReadDir};
@@ -12,20 +11,14 @@ pub mod walker {
         origin: PathBuf,
         max_depth: u32,
         follow_symlinks: bool,
-        pattern: Option<Regex>,
     }
 
     impl FileWalker {
         pub fn new() -> FileWalker {
-            FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false, None)
+            FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false)
         }
 
-        pub fn for_path(
-            path: &PathBuf,
-            max_depth: u32,
-            follow_symlinks: bool,
-            pattern: Option<Regex>,
-        ) -> FileWalker {
+        pub fn for_path(path: &PathBuf, max_depth: u32, follow_symlinks: bool) -> FileWalker {
             if !path.is_dir() {
                 panic!("Path is not a directory: {:?}", path);
             }
@@ -39,7 +32,6 @@ pub mod walker {
                 origin: path.clone(),
                 max_depth,
                 follow_symlinks,
-                pattern,
             }
         }
         fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
@@ -47,7 +39,6 @@ pub mod walker {
             let (files, dirs) = path
                 .filter_map(|p| p.ok())
                 .map(|p| p.path())
-                .filter(|p: &PathBuf| filter_name(p, &self.pattern))
                 .filter(|p: &PathBuf| self.follow_symlinks || !is_symlink(p))
                 .filter(is_valid_target)
                 .partition(|p| p.is_file());
@@ -106,16 +97,6 @@ pub mod walker {
             }
         }
     }
-
-    fn filter_name(path: &PathBuf, pattern: &Option<Regex>) -> bool {
-        match pattern {
-            None => true,
-            Some(regex) => {
-                let file_name: &str = path.file_name().unwrap().to_str().unwrap();
-                regex.is_match(file_name)
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -128,14 +109,14 @@ mod tests {
     #[test]
     fn test_depth_only_root_dir() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::for_path(&dir, 0, false, None).count();
+        let found = FileWalker::for_path(&dir, 0, false).count();
         assert_eq!(1, found);
     }
 
     #[test]
     fn test_depth_one() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::for_path(&dir, 1, false, None).count();
+        let found = FileWalker::for_path(&dir, 1, false).count();
         assert_eq!(3, found);
     }
 }
