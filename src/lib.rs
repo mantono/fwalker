@@ -1,10 +1,11 @@
-mod walker {
+pub mod walker {
     use regex::Regex;
     use std::collections::VecDeque;
     use std::fs;
     use std::fs::{Metadata, ReadDir};
     use std::path::PathBuf;
 
+    #[derive(Default)]
     pub struct FileWalker {
         files: VecDeque<PathBuf>,
         dirs: VecDeque<PathBuf>,
@@ -15,20 +16,23 @@ mod walker {
     }
 
     impl FileWalker {
+        pub fn new() -> FileWalker {
+            FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false, None)
+        }
+
         pub fn for_path(
             path: &PathBuf,
             max_depth: u32,
             follow_symlinks: bool,
             pattern: Option<Regex>,
         ) -> FileWalker {
-            let (files, dirs) =
-                FileWalker::load(path, follow_symlinks).expect("Unable to load path");
-            let dirs = if max_depth > 0 {
-                VecDeque::from(dirs)
-            } else {
-                VecDeque::with_capacity(0)
-            };
-            let files = VecDeque::from(files);
+            if !path.is_dir() {
+                panic!("Path is not a directory: {:?}", path);
+            }
+            let mut dirs = VecDeque::with_capacity(1);
+            dirs.push_back(path.clone());
+            let files = VecDeque::with_capacity(0);
+
             FileWalker {
                 files,
                 dirs,
@@ -38,21 +42,19 @@ mod walker {
                 pattern,
             }
         }
-        fn load(
-            path: &PathBuf,
-            follow_symlinks: bool,
-        ) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
+        fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
             let path: ReadDir = read_dirs(&path)?;
             let (files, dirs) = path
                 .filter_map(|p| p.ok())
                 .map(|p| p.path())
-                .filter(|p: &PathBuf| !is_symlink(p) || follow_symlinks)
-                .filter(|p: &PathBuf| is_valid_target(p))
+                .filter(|p: &PathBuf| filter_name(p, &self.pattern))
+                .filter(|p: &PathBuf| self.follow_symlinks || !is_symlink(p))
+                .filter(is_valid_target)
                 .partition(|p| p.is_file());
             Ok((files, dirs))
         }
         fn push(&mut self, path: &PathBuf) {
-            match FileWalker::load(path, self.follow_symlinks) {
+            match self.load(path) {
                 Ok((files, dirs)) => {
                     self.files.extend(files);
                     let current_depth: u32 = self.depth(path) as u32;
@@ -84,20 +86,33 @@ mod walker {
             }
         }
     }
+
     fn read_dirs(path: &PathBuf) -> Result<ReadDir, std::io::Error> {
         let full_path: PathBuf = path.canonicalize()?;
         Ok(fs::read_dir(full_path)?)
     }
+
     fn is_valid_target(path: &PathBuf) -> bool {
         let metadata: Metadata = path.metadata().expect("Unable to retrieve metadata:");
         metadata.is_file() || metadata.is_dir()
     }
+
     fn is_symlink(path: &PathBuf) -> bool {
         match path.symlink_metadata() {
             Ok(sym) => sym.file_type().is_symlink(),
             Err(err) => {
                 log::warn!("{}: {:?}", err, path);
                 false
+            }
+        }
+    }
+
+    fn filter_name(path: &PathBuf, pattern: &Option<Regex>) -> bool {
+        match pattern {
+            None => true,
+            Some(regex) => {
+                let file_name: &str = path.file_name().unwrap().to_str().unwrap();
+                regex.is_match(file_name)
             }
         }
     }
