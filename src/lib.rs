@@ -14,10 +14,26 @@ pub mod walker {
     }
 
     impl FileWalker {
+        /// Create a new FileWalker starting from the current directoty (path ".").
+        /// This FileWalker will not follow symlinks and will not have any limitation
+        /// in recursion depth for directories.
         pub fn new() -> FileWalker {
             FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false)
         }
 
+        /// Create a new FileWalker for the given path, while also specifying the
+        /// max recursion depth and if symlinks should be followed or not.
+        /// ```
+        /// use std::path::PathBuf;
+        /// use walker::walker::FileWalker;
+        ///
+        /// let path = PathBuf::from("test_dirs");
+        /// let max_depth: u32 = 100;
+        /// let follow_symlinks: bool = false;
+        /// let walker = FileWalker::for_path(path, max_depth, follow_symlinks);
+        /// let files: usize = walker.count();
+        /// assert_eq!(3, files);
+        /// ```
         pub fn for_path(path: &PathBuf, max_depth: u32, follow_symlinks: bool) -> FileWalker {
             if !path.is_dir() {
                 panic!("Path is not a directory: {:?}", path);
@@ -62,6 +78,7 @@ pub mod walker {
             comps1 - comps0
         }
     }
+
     impl Iterator for FileWalker {
         type Item = PathBuf;
         fn next(&mut self) -> Option<Self::Item> {
