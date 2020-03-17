@@ -13,7 +13,7 @@ pub struct FileWalker {
 }
 
 impl FileWalker {
-    /// Create a new FileWalker starting from the current directoty (path ".").
+    /// Create a new FileWalker starting from the current directoty (path `.`).
     /// This FileWalker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
     pub fn new() -> FileWalker {
@@ -22,16 +22,30 @@ impl FileWalker {
 
     /// Create a new FileWalker for the given path, while also specifying the
     /// max recursion depth and if symlinks should be followed or not.
+    ///
+    /// With a directory structure of
+    ///
+    /// ```yaml
+    /// test_dirs:
+    ///   - file0
+    ///   sub_dir:
+    ///     - file1
+    ///     - file2
+    /// ```
+    ///
+    /// the FileWalker should return the files as following
     /// ```
     /// use std::path::PathBuf;
-    /// use walker::FileWalker;
     ///
     /// let path = PathBuf::from("test_dirs");
     /// let max_depth: u32 = 100;
     /// let follow_symlinks: bool = false;
-    /// let walker = FileWalker::for_path(&path, max_depth, follow_symlinks);
-    /// let files: usize = walker.count();
-    /// assert_eq!(3, files);
+    /// let mut walker = walker::FileWalker::for_path(&path, max_depth, follow_symlinks);
+    ///
+    /// assert_eq!(Some(PathBuf::from("test_dirs/file0").canonicalize().unwrap()), walker.next());
+    /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file2").canonicalize().unwrap()), walker.next());
+    /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file1").canonicalize().unwrap()), walker.next());
+    /// assert_eq!(None, walker.next());
     /// ```
     pub fn for_path(path: &PathBuf, max_depth: u32, follow_symlinks: bool) -> FileWalker {
         if !path.is_dir() {
