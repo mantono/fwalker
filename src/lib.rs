@@ -1,124 +1,122 @@
-pub mod walker {
-    use std::collections::VecDeque;
-    use std::fs;
-    use std::fs::{Metadata, ReadDir};
-    use std::path::PathBuf;
+use std::collections::VecDeque;
+use std::fs;
+use std::fs::{Metadata, ReadDir};
+use std::path::PathBuf;
 
-    #[derive(Default)]
-    pub struct FileWalker {
-        files: VecDeque<PathBuf>,
-        dirs: VecDeque<PathBuf>,
-        origin: PathBuf,
-        max_depth: u32,
-        follow_symlinks: bool,
+#[derive(Default)]
+pub struct FileWalker {
+    files: VecDeque<PathBuf>,
+    dirs: VecDeque<PathBuf>,
+    origin: PathBuf,
+    max_depth: u32,
+    follow_symlinks: bool,
+}
+
+impl FileWalker {
+    /// Create a new FileWalker starting from the current directoty (path ".").
+    /// This FileWalker will not follow symlinks and will not have any limitation
+    /// in recursion depth for directories.
+    pub fn new() -> FileWalker {
+        FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false)
     }
 
-    impl FileWalker {
-        /// Create a new FileWalker starting from the current directoty (path ".").
-        /// This FileWalker will not follow symlinks and will not have any limitation
-        /// in recursion depth for directories.
-        pub fn new() -> FileWalker {
-            FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false)
+    /// Create a new FileWalker for the given path, while also specifying the
+    /// max recursion depth and if symlinks should be followed or not.
+    /// ```
+    /// use std::path::PathBuf;
+    /// use walker::FileWalker;
+    ///
+    /// let path = PathBuf::from("test_dirs");
+    /// let max_depth: u32 = 100;
+    /// let follow_symlinks: bool = false;
+    /// let walker = FileWalker::for_path(&path, max_depth, follow_symlinks);
+    /// let files: usize = walker.count();
+    /// assert_eq!(3, files);
+    /// ```
+    pub fn for_path(path: &PathBuf, max_depth: u32, follow_symlinks: bool) -> FileWalker {
+        if !path.is_dir() {
+            panic!("Path is not a directory: {:?}", path);
         }
+        let mut dirs = VecDeque::with_capacity(1);
+        dirs.push_back(path.clone());
+        let files = VecDeque::with_capacity(0);
 
-        /// Create a new FileWalker for the given path, while also specifying the
-        /// max recursion depth and if symlinks should be followed or not.
-        /// ```
-        /// use std::path::PathBuf;
-        /// use walker::walker::FileWalker;
-        ///
-        /// let path = PathBuf::from("test_dirs");
-        /// let max_depth: u32 = 100;
-        /// let follow_symlinks: bool = false;
-        /// let walker = FileWalker::for_path(path, max_depth, follow_symlinks);
-        /// let files: usize = walker.count();
-        /// assert_eq!(3, files);
-        /// ```
-        pub fn for_path(path: &PathBuf, max_depth: u32, follow_symlinks: bool) -> FileWalker {
-            if !path.is_dir() {
-                panic!("Path is not a directory: {:?}", path);
-            }
-            let mut dirs = VecDeque::with_capacity(1);
-            dirs.push_back(path.clone());
-            let files = VecDeque::with_capacity(0);
-
-            FileWalker {
-                files,
-                dirs,
-                origin: path.clone(),
-                max_depth,
-                follow_symlinks,
-            }
+        FileWalker {
+            files,
+            dirs,
+            origin: path.clone(),
+            max_depth,
+            follow_symlinks,
         }
-        fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
-            let path: ReadDir = read_dirs(&path)?;
-            let (files, dirs) = path
-                .filter_map(|p| p.ok())
-                .map(|p| p.path())
-                .filter(|p: &PathBuf| self.follow_symlinks || !is_symlink(p))
-                .filter(is_valid_target)
-                .partition(|p| p.is_file());
-            Ok((files, dirs))
-        }
-        fn push(&mut self, path: &PathBuf) {
-            match self.load(path) {
-                Ok((files, dirs)) => {
-                    self.files.extend(files);
-                    let current_depth: u32 = self.depth(path) as u32;
-                    if current_depth < self.max_depth {
-                        self.dirs.extend(dirs);
-                    }
+    }
+    fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
+        let path: ReadDir = read_dirs(&path)?;
+        let (files, dirs) = path
+            .filter_map(|p| p.ok())
+            .map(|p| p.path())
+            .filter(|p: &PathBuf| self.follow_symlinks || !is_symlink(p))
+            .filter(is_valid_target)
+            .partition(|p| p.is_file());
+        Ok((files, dirs))
+    }
+    fn push(&mut self, path: &PathBuf) {
+        match self.load(path) {
+            Ok((files, dirs)) => {
+                self.files.extend(files);
+                let current_depth: u32 = self.depth(path) as u32;
+                if current_depth < self.max_depth {
+                    self.dirs.extend(dirs);
                 }
-                Err(e) => log::warn!("{}: {:?}", e, path),
             }
-        }
-        fn depth(&self, dir: &PathBuf) -> usize {
-            let comps0 = self.origin.canonicalize().unwrap().components().count();
-            let comps1 = dir.canonicalize().unwrap().components().count();
-            comps1 - comps0
+            Err(e) => log::warn!("{}: {:?}", e, path),
         }
     }
+    fn depth(&self, dir: &PathBuf) -> usize {
+        let comps0 = self.origin.canonicalize().unwrap().components().count();
+        let comps1 = dir.canonicalize().unwrap().components().count();
+        comps1 - comps0
+    }
+}
 
-    impl Iterator for FileWalker {
-        type Item = PathBuf;
-        fn next(&mut self) -> Option<Self::Item> {
-            match self.files.pop_front() {
-                Some(f) => Some(f),
-                None => match self.dirs.pop_front() {
-                    Some(d) => {
-                        self.push(&d);
-                        self.next()
-                    }
-                    None => None,
-                },
-            }
+impl Iterator for FileWalker {
+    type Item = PathBuf;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.files.pop_front() {
+            Some(f) => Some(f),
+            None => match self.dirs.pop_front() {
+                Some(d) => {
+                    self.push(&d);
+                    self.next()
+                }
+                None => None,
+            },
         }
     }
+}
 
-    fn read_dirs(path: &PathBuf) -> Result<ReadDir, std::io::Error> {
-        let full_path: PathBuf = path.canonicalize()?;
-        Ok(fs::read_dir(full_path)?)
-    }
+fn read_dirs(path: &PathBuf) -> Result<ReadDir, std::io::Error> {
+    let full_path: PathBuf = path.canonicalize()?;
+    Ok(fs::read_dir(full_path)?)
+}
 
-    fn is_valid_target(path: &PathBuf) -> bool {
-        let metadata: Metadata = path.metadata().expect("Unable to retrieve metadata:");
-        metadata.is_file() || metadata.is_dir()
-    }
+fn is_valid_target(path: &PathBuf) -> bool {
+    let metadata: Metadata = path.metadata().expect("Unable to retrieve metadata:");
+    metadata.is_file() || metadata.is_dir()
+}
 
-    fn is_symlink(path: &PathBuf) -> bool {
-        match path.symlink_metadata() {
-            Ok(sym) => sym.file_type().is_symlink(),
-            Err(err) => {
-                log::warn!("{}: {:?}", err, path);
-                false
-            }
+fn is_symlink(path: &PathBuf) -> bool {
+    match path.symlink_metadata() {
+        Ok(sym) => sym.file_type().is_symlink(),
+        Err(err) => {
+            log::warn!("{}: {:?}", err, path);
+            false
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::walker::FileWalker;
+    use crate::FileWalker;
     use std::path::PathBuf;
 
     const TEST_DIR: &str = "test_dirs";
