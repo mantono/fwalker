@@ -3,6 +3,8 @@ use std::fs;
 use std::fs::{Metadata, ReadDir};
 use std::path::PathBuf;
 
+mod err;
+
 #[derive(Default)]
 pub struct FileWalker {
     files: VecDeque<PathBuf>,
@@ -16,7 +18,7 @@ impl FileWalker {
     /// Create a new FileWalker starting from the current directory (path `.`).
     /// This FileWalker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
-    pub fn new() -> FileWalker {
+    pub fn new() -> Result<FileWalker, err::FileError> {
         FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false)
     }
 
@@ -40,28 +42,37 @@ impl FileWalker {
     /// let path = PathBuf::from("test_dirs");
     /// let max_depth: u32 = 100;
     /// let follow_symlinks: bool = false;
-    /// let mut walker = walker::FileWalker::for_path(&path, max_depth, follow_symlinks);
+    /// let mut walker = walker::FileWalker::for_path(&path, max_depth, follow_symlinks).unwrap();
     ///
     /// assert_eq!(Some(PathBuf::from("test_dirs/file0").canonicalize().unwrap()), walker.next());
     /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file2").canonicalize().unwrap()), walker.next());
     /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file1").canonicalize().unwrap()), walker.next());
     /// assert_eq!(None, walker.next());
     /// ```
-    pub fn for_path(path: &PathBuf, max_depth: u32, follow_symlinks: bool) -> FileWalker {
+    pub fn for_path(
+        path: &PathBuf,
+        max_depth: u32,
+        follow_symlinks: bool,
+    ) -> Result<FileWalker, err::FileError> {
         if !path.is_dir() {
-            panic!("Path is not a directory: {:?}", path);
+            let err = err::FileError  {
+                path: path.clone(),
+                message: String::from("Path must be a directory")
+            };
+            return Err(err)
         }
         let mut dirs = VecDeque::with_capacity(1);
         dirs.push_back(path.clone());
         let files = VecDeque::with_capacity(0);
 
-        FileWalker {
+        let walker = FileWalker {
             files,
             dirs,
             origin: path.clone(),
             max_depth,
             follow_symlinks,
-        }
+        };
+        Ok(walker)
     }
     fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
         let path: ReadDir = read_dirs(&path)?;
@@ -142,14 +153,14 @@ mod tests {
     #[test]
     fn test_depth_only_root_dir() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::for_path(&dir, 0, false).count();
+        let found = FileWalker::for_path(&dir, 0, false).unwrap().count();
         assert_eq!(1, found);
     }
 
     #[test]
     fn test_depth_one() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::for_path(&dir, 1, false).count();
+        let found = FileWalker::for_path(&dir, 1, false).unwrap().count();
         assert_eq!(3, found);
     }
 }
