@@ -7,7 +7,7 @@ license = "MIT"
 description = "Library for file and directory traversal in a file system"
 repository = "https://github.com/mantono/walker"
 readme = "README.md"
-keywords = ["fs", "filesystem", "traversal"]
+keywords = ["fs", "filesystem", "files", "traversal"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
