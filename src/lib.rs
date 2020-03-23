@@ -18,11 +18,11 @@ impl FileWalker {
     /// This FileWalker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
     pub fn new() -> Result<FileWalker, std::io::Error> {
-        FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false)
+        FileWalker::from(&PathBuf::from("."))
     }
 
-    /// Create a new FileWalker for the given path, while also specifying the
-    /// max recursion depth and if symlinks should be followed or not.
+    /// Create a new FileWalker for the given path. This FileWalker will not follow
+    /// symlinks and will not have any limitation in recursion depth for directories.
     ///
     /// With a directory structure of
     ///
@@ -42,9 +42,7 @@ impl FileWalker {
     /// use std::path::PathBuf;
     ///
     /// let path = PathBuf::from("test_dirs");
-    /// let max_depth: u32 = 100;
-    /// let follow_symlinks: bool = false;
-    /// let mut walker = walker::FileWalker::for_path(&path, max_depth, follow_symlinks)?;
+    /// let mut walker = walker::FileWalker::from(&path)?;
     ///
     /// assert_eq!(Some(PathBuf::from("test_dirs/file0").canonicalize()?), walker.next());
     /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file2").canonicalize()?), walker.next());
@@ -53,12 +51,22 @@ impl FileWalker {
     /// #
     /// #    Ok(())
     /// # }
+    ///
     /// ```
-    pub fn for_path(
-        path: &PathBuf,
-        max_depth: u32,
-        follow_symlinks: bool,
-    ) -> Result<FileWalker, std::io::Error> {
+    /// FileWalker::from takes any argument that can be coverted into a PathBuf, so the following
+    /// is possible as well
+    /// ```
+    /// # use std::error::Error;
+    /// #
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// let mut walker = walker::FileWalker::from("test_dirs")?;
+    /// assert!(walker.next().is_some());
+    /// #
+    /// #    Ok(())
+    /// # }
+    /// ```
+    pub fn from<T: Into<PathBuf>>(path: T) -> Result<FileWalker, std::io::Error> {
+        let path: &PathBuf = &path.into();
         if !path.exists() {
             let err = std::io::Error::from(ErrorKind::NotFound);
             return Err(err)
@@ -75,11 +83,30 @@ impl FileWalker {
             files,
             dirs,
             origin: path.clone(),
-            max_depth,
-            follow_symlinks,
+            max_depth: std::u32::MAX,
+            follow_symlinks: false,
         };
         Ok(walker)
     }
+
+    /// Creates a new instance of a FileWalker, retaining the current configuration for the
+    /// FileWalker, but setting the maximum recursion depth to the maximum value of `depth`.
+    pub fn max_depth(&self, depth: u32) -> FileWalker {
+        FileWalker {
+            max_depth: depth,
+            ..self.clone()
+        }
+    }
+
+    /// Enable following of symlinks when traversing through files. Once this option has been
+    /// enabled for a FileWalker, it cannot be disabled again.
+    pub fn follow_symlinks(&self) -> FileWalker {
+        FileWalker {
+            follow_symlinks: true,
+            ..self.clone()
+        }
+    }
+
     fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
         let path: ReadDir = read_dirs(&path)?;
         let (files, dirs) = path
@@ -159,21 +186,21 @@ mod tests {
     #[test]
     fn test_depth_only_root_dir() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::for_path(&dir, 0, false).unwrap().count();
+        let found = FileWalker::from(&dir).unwrap().max_depth(0).count();
         assert_eq!(1, found);
     }
 
     #[test]
     fn test_depth_one() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::for_path(&dir, 1, false).unwrap().count();
+        let found = FileWalker::from(&dir).unwrap().max_depth(1).count();
         assert_eq!(3, found);
     }
 
     #[test]
     fn test_path_not_found() {
         let dir = PathBuf::from("/dev/null/foo");
-        match FileWalker::for_path(&dir, 1, false) {
+        match FileWalker::from(&dir) {
             Err(error) => assert_eq!(std::io::ErrorKind::NotFound, error.kind()),
             _ => panic!()
         }
@@ -182,7 +209,7 @@ mod tests {
     #[test]
     fn test_path_not_a_dir() {
         let dir = PathBuf::from("src/lib.rs");
-        match FileWalker::for_path(&dir, 1, false) {
+        match FileWalker::from(&dir) {
             Err(error) => assert_eq!(std::io::ErrorKind::InvalidInput, error.kind()),
             _ => panic!()
         }
