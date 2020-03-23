@@ -8,7 +8,7 @@ use std::path::PathBuf;
 pub struct FileWalker {
     files: VecDeque<PathBuf>,
     dirs: VecDeque<PathBuf>,
-    origin: PathBuf,
+    origin_depth: usize,
     max_depth: u32,
     follow_symlinks: bool,
 }
@@ -82,7 +82,7 @@ impl FileWalker {
         let walker = FileWalker {
             files,
             dirs,
-            origin: path.clone(),
+            origin_depth: components(&path),
             max_depth: std::u32::MAX,
             follow_symlinks: false,
         };
@@ -130,9 +130,7 @@ impl FileWalker {
         }
     }
     fn depth(&self, dir: &PathBuf) -> usize {
-        let comps0 = components(&self.origin);
-        let comps1 = components(dir);
-        comps1 - comps0
+        self.origin_depth - components(dir)
     }
 }
 
