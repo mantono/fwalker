@@ -86,10 +86,14 @@ impl FileWalker {
         }
     }
     fn depth(&self, dir: &PathBuf) -> usize {
-        let comps0 = self.origin.canonicalize().unwrap().components().count();
-        let comps1 = dir.canonicalize().unwrap().components().count();
+        let comps0 = components(&self.origin);
+        let comps1 = components(dir);
         comps1 - comps0
     }
+}
+
+fn components(path: &PathBuf) -> usize {
+    path.canonicalize().expect("Unable to canonicalize path").components().count()
 }
 
 impl Iterator for FileWalker {
