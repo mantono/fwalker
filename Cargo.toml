@@ -5,6 +5,7 @@ authors = ["Anton Österberg <anton@42x.io>"]
 edition = "2018"
 license = "MIT"
 description = "Library for file and directory traversal in a file system"
+repository = "https://github.com/mantono/walker"
 readme = "README.md"
 keywords = ["fs", "filesystem", "traversal"]
 
