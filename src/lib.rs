@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::fs;
 use std::fs::{Metadata, ReadDir};
+use std::io::ErrorKind;
 use std::path::PathBuf;
 
 #[derive(Default)]
@@ -13,10 +14,10 @@ pub struct FileWalker {
 }
 
 impl FileWalker {
-    /// Create a new FileWalker starting from the current directoty (path `.`).
+    /// Create a new FileWalker starting from the current directory (path `.`).
     /// This FileWalker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
-    pub fn new() -> FileWalker {
+    pub fn new() -> Result<FileWalker, std::io::Error> {
         FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false)
     }
 
@@ -40,28 +41,38 @@ impl FileWalker {
     /// let path = PathBuf::from("test_dirs");
     /// let max_depth: u32 = 100;
     /// let follow_symlinks: bool = false;
-    /// let mut walker = walker::FileWalker::for_path(&path, max_depth, follow_symlinks);
+    /// let mut walker = walker::FileWalker::for_path(&path, max_depth, follow_symlinks).unwrap();
     ///
     /// assert_eq!(Some(PathBuf::from("test_dirs/file0").canonicalize().unwrap()), walker.next());
     /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file2").canonicalize().unwrap()), walker.next());
     /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file1").canonicalize().unwrap()), walker.next());
     /// assert_eq!(None, walker.next());
     /// ```
-    pub fn for_path(path: &PathBuf, max_depth: u32, follow_symlinks: bool) -> FileWalker {
+    pub fn for_path(
+        path: &PathBuf,
+        max_depth: u32,
+        follow_symlinks: bool,
+    ) -> Result<FileWalker, std::io::Error> {
+        if !path.exists() {
+            let err = std::io::Error::from(ErrorKind::NotFound);
+            return Err(err)
+        }
         if !path.is_dir() {
-            panic!("Path is not a directory: {:?}", path);
+            let err = std::io::Error::new(ErrorKind::InvalidInput, "Path is not a directory");
+            return Err(err)
         }
         let mut dirs = VecDeque::with_capacity(1);
         dirs.push_back(path.clone());
         let files = VecDeque::with_capacity(0);
 
-        FileWalker {
+        let walker = FileWalker {
             files,
             dirs,
             origin: path.clone(),
             max_depth,
             follow_symlinks,
-        }
+        };
+        Ok(walker)
     }
     fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
         let path: ReadDir = read_dirs(&path)?;
@@ -86,10 +97,14 @@ impl FileWalker {
         }
     }
     fn depth(&self, dir: &PathBuf) -> usize {
-        let comps0 = self.origin.canonicalize().unwrap().components().count();
-        let comps1 = dir.canonicalize().unwrap().components().count();
+        let comps0 = components(&self.origin);
+        let comps1 = components(dir);
         comps1 - comps0
     }
+}
+
+fn components(path: &PathBuf) -> usize {
+    path.canonicalize().expect("Unable to canonicalize path").components().count()
 }
 
 impl Iterator for FileWalker {
@@ -138,14 +153,32 @@ mod tests {
     #[test]
     fn test_depth_only_root_dir() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::for_path(&dir, 0, false).count();
+        let found = FileWalker::for_path(&dir, 0, false).unwrap().count();
         assert_eq!(1, found);
     }
 
     #[test]
     fn test_depth_one() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::for_path(&dir, 1, false).count();
+        let found = FileWalker::for_path(&dir, 1, false).unwrap().count();
         assert_eq!(3, found);
+    }
+
+    #[test]
+    fn test_path_not_found() {
+        let dir = PathBuf::from("/dev/null/foo");
+        match FileWalker::for_path(&dir, 1, false) {
+            Err(error) => assert_eq!(std::io::ErrorKind::NotFound, error.kind()),
+            _ => panic!()
+        }
+    }
+
+    #[test]
+    fn test_path_not_a_dir() {
+        let dir = PathBuf::from("src/lib.rs");
+        match FileWalker::for_path(&dir, 1, false) {
+            Err(error) => assert_eq!(std::io::ErrorKind::InvalidInput, error.kind()),
+            _ => panic!()
+        }
     }
 }
