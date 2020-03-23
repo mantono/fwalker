@@ -36,17 +36,23 @@ impl FileWalker {
     ///
     /// the FileWalker should return the files as following
     /// ```
+    /// # use std::error::Error;
+    /// #
+    /// # fn main() -> Result<(), Box<dyn Error>> {
     /// use std::path::PathBuf;
     ///
     /// let path = PathBuf::from("test_dirs");
     /// let max_depth: u32 = 100;
     /// let follow_symlinks: bool = false;
-    /// let mut walker = walker::FileWalker::for_path(&path, max_depth, follow_symlinks).unwrap();
+    /// let mut walker = walker::FileWalker::for_path(&path, max_depth, follow_symlinks)?;
     ///
-    /// assert_eq!(Some(PathBuf::from("test_dirs/file0").canonicalize().unwrap()), walker.next());
-    /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file2").canonicalize().unwrap()), walker.next());
-    /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file1").canonicalize().unwrap()), walker.next());
+    /// assert_eq!(Some(PathBuf::from("test_dirs/file0").canonicalize()?), walker.next());
+    /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file2").canonicalize()?), walker.next());
+    /// assert_eq!(Some(PathBuf::from("test_dirs/sub_dir/file1").canonicalize()?), walker.next());
     /// assert_eq!(None, walker.next());
+    /// #
+    /// #    Ok(())
+    /// # }
     /// ```
     pub fn for_path(
         path: &PathBuf,
