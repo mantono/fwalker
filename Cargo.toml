@@ -4,7 +4,6 @@ version = "0.1.0"
 authors = ["Anton Österberg <anton@42x.io>"]
 edition = "2018"
 license = "MIT"
-license-file = "LICENSE"
 description = "Library for file and directory traversal in a file system"
 readme = "README.md"
 keywords = ["fs", "filesystem", "traversal"]
