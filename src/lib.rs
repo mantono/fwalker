@@ -1,9 +1,8 @@
 use std::collections::VecDeque;
 use std::fs;
 use std::fs::{Metadata, ReadDir};
+use std::io::ErrorKind;
 use std::path::PathBuf;
-
-mod err;
 
 #[derive(Default)]
 pub struct FileWalker {
@@ -18,7 +17,7 @@ impl FileWalker {
     /// Create a new FileWalker starting from the current directory (path `.`).
     /// This FileWalker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
-    pub fn new() -> Result<FileWalker, err::FileError> {
+    pub fn new() -> Result<FileWalker, std::io::Error> {
         FileWalker::for_path(&PathBuf::from("."), std::u32::MAX, false)
     }
 
@@ -53,12 +52,13 @@ impl FileWalker {
         path: &PathBuf,
         max_depth: u32,
         follow_symlinks: bool,
-    ) -> Result<FileWalker, err::FileError> {
+    ) -> Result<FileWalker, std::io::Error> {
+        if !path.exists() {
+            let err = std::io::Error::from(ErrorKind::NotFound);
+            return Err(err)
+        }
         if !path.is_dir() {
-            let err = err::FileError  {
-                path: path.clone(),
-                message: String::from("Path must be a directory")
-            };
+            let err = std::io::Error::new(ErrorKind::InvalidInput, "Path is not a directory");
             return Err(err)
         }
         let mut dirs = VecDeque::with_capacity(1);
@@ -162,5 +162,23 @@ mod tests {
         let dir = PathBuf::from(TEST_DIR);
         let found = FileWalker::for_path(&dir, 1, false).unwrap().count();
         assert_eq!(3, found);
+    }
+
+    #[test]
+    fn test_path_not_found() {
+        let dir = PathBuf::from("/dev/null/foo");
+        match FileWalker::for_path(&dir, 1, false) {
+            Err(error) => assert_eq!(std::io::ErrorKind::NotFound, error.kind()),
+            _ => panic!()
+        }
+    }
+
+    #[test]
+    fn test_path_not_a_dir() {
+        let dir = PathBuf::from("src/lib.rs");
+        match FileWalker::for_path(&dir, 1, false) {
+            Err(error) => assert_eq!(std::io::ErrorKind::InvalidInput, error.kind()),
+            _ => panic!()
+        }
     }
 }
