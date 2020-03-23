@@ -89,22 +89,18 @@ impl FileWalker {
         Ok(walker)
     }
 
-    /// Creates a new instance of a FileWalker, retaining the current configuration for the
+    /// Modifies the current instance of a FileWalker, retaining the current configuration for the
     /// FileWalker, but setting the maximum recursion depth to the maximum value of `depth`.
-    pub fn max_depth(&self, depth: u32) -> FileWalker {
-        FileWalker {
-            max_depth: depth,
-            ..self.clone()
-        }
+    pub fn max_depth(&mut self, depth: u32) -> &mut FileWalker {
+        self.max_depth = depth;
+        self
     }
 
-    /// Enable following of symlinks when traversing through files. Once this option has been
-    /// enabled for a FileWalker, it cannot be disabled again.
-    pub fn follow_symlinks(&self) -> FileWalker {
-        FileWalker {
-            follow_symlinks: true,
-            ..self.clone()
-        }
+    /// Enable following of symlinks on the current FileWalker when traversing through files.
+    /// Once this option has been enabled for a FileWalker, it cannot be disabled again.
+    pub fn follow_symlinks(&mut self) -> &mut FileWalker {
+        self.follow_symlinks = true;
+        self
     }
 
     fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
