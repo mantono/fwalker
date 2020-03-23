@@ -13,7 +13,7 @@ pub struct FileWalker {
 }
 
 impl FileWalker {
-    /// Create a new FileWalker starting from the current directoty (path `.`).
+    /// Create a new FileWalker starting from the current directory (path `.`).
     /// This FileWalker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
     pub fn new() -> FileWalker {
