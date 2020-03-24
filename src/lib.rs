@@ -4,7 +4,7 @@ use std::fs::{Metadata, ReadDir};
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct FileWalker {
     files: VecDeque<PathBuf>,
     dirs: VecDeque<PathBuf>,
