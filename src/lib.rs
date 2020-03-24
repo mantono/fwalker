@@ -4,6 +4,7 @@ use std::fs::{Metadata, ReadDir};
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::fmt::Formatter;
+use std::cmp::Ordering;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FileWalker {
@@ -183,10 +184,32 @@ impl Default for FileWalker {
     }
 }
 
+impl std::cmp::Ord for FileWalker {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let left: usize = current_depth(self);
+        let right: usize = current_depth(other);
+        right.cmp(&left)
+    }
+}
+
+fn current_depth(walker: &FileWalker) -> usize {
+    let fallback: PathBuf = PathBuf::new();
+    let path: &PathBuf = walker.files.get(0)
+        .unwrap_or(walker.dirs.get(0).unwrap_or(&fallback));
+    components(path)
+}
+
+impl std::cmp::PartialOrd for FileWalker {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::FileWalker;
     use std::path::PathBuf;
+    use std::cmp::Ordering;
 
     const TEST_DIR: &str = "test_dirs";
 
@@ -257,5 +280,30 @@ mod tests {
         let walker0: FileWalker = FileWalker::new().unwrap();
         let walker1: FileWalker = Default::default();
         assert_eq!(walker0, walker1)
+    }
+
+    #[test]
+    fn test_ordering_less_than() {
+        let mut walker0 = FileWalker::from(TEST_DIR).unwrap();
+        let walker1 = FileWalker::from(TEST_DIR).unwrap();
+        walker0.next();
+        walker0.next();
+        assert!(walker0 < walker1)
+    }
+
+    #[test]
+    fn test_ordering_greater_than() {
+        let walker0 = FileWalker::from(TEST_DIR).unwrap();
+        let mut walker1 = FileWalker::from(TEST_DIR).unwrap();
+        walker1.next();
+        walker1.next();
+        assert!(walker0 > walker1)
+    }
+
+    #[test]
+    fn test_ordering_equal() {
+        let walker0 = FileWalker::from(TEST_DIR).unwrap();
+        let walker1 = FileWalker::from(TEST_DIR).unwrap();
+        assert_eq!(walker0.cmp(walker1), Ordering::Equal)
     }
 }
