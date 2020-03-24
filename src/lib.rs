@@ -5,7 +5,7 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::fmt::Formatter;
 
-#[derive(Default, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FileWalker {
     files: VecDeque<PathBuf>,
     dirs: VecDeque<PathBuf>,
@@ -177,6 +177,12 @@ impl std::fmt::Display for FileWalker {
     }
 }
 
+impl Default for FileWalker {
+    fn default() -> Self {
+        Self::new().unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::FileWalker;
@@ -244,5 +250,12 @@ mod tests {
         let walker0: FileWalker = FileWalker::from(TEST_DIR).unwrap().max_depth(1).to_owned();
         let walker1: FileWalker = FileWalker::from(TEST_DIR).unwrap().follow_symlinks().to_owned();
         assert_ne!(walker0, walker1)
+    }
+
+    #[test]
+    fn test_default() {
+        let walker0: FileWalker = FileWalker::new().unwrap();
+        let walker1: FileWalker = Default::default();
+        assert_eq!(walker0, walker1)
     }
 }
