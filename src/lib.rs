@@ -5,7 +5,7 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::fmt::Formatter;
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FileWalker {
     files: VecDeque<PathBuf>,
     dirs: VecDeque<PathBuf>,
@@ -214,5 +214,35 @@ mod tests {
             Err(error) => assert_eq!(std::io::ErrorKind::InvalidInput, error.kind()),
             _ => panic!()
         }
+    }
+
+    #[test]
+    fn test_equals() {
+        let walker0 = FileWalker::from(TEST_DIR).unwrap();
+        let walker1 = FileWalker::from(TEST_DIR).unwrap();
+        assert_eq!(walker0, walker1)
+    }
+
+    #[test]
+    fn test_not_equals_different_origin() {
+        let other_dir: String = format!("{}/sub_dir", TEST_DIR);
+        let walker0 = FileWalker::from(TEST_DIR).unwrap();
+        let walker1 = FileWalker::from(other_dir).unwrap();
+        assert_ne!(walker0, walker1)
+    }
+
+    #[test]
+    fn test_not_equals_different_state() {
+        let walker0 = FileWalker::from(TEST_DIR).unwrap();
+        let mut walker1 = FileWalker::from(TEST_DIR).unwrap();
+        walker1.next();
+        assert_ne!(walker0, walker1)
+    }
+
+    #[test]
+    fn test_not_equals_different_settings() {
+        let walker0: FileWalker = FileWalker::from(TEST_DIR).unwrap().max_depth(1).to_owned();
+        let walker1: FileWalker = FileWalker::from(TEST_DIR).unwrap().follow_symlinks().to_owned();
+        assert_ne!(walker0, walker1)
     }
 }
