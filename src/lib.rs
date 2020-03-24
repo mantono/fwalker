@@ -126,7 +126,7 @@ impl FileWalker {
         }
     }
     fn depth(&self, dir: &PathBuf) -> usize {
-        self.origin_depth - components(dir)
+        components(dir) - self.origin_depth
     }
 }
 
