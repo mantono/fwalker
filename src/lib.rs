@@ -3,6 +3,7 @@ use std::fs;
 use std::fs::{Metadata, ReadDir};
 use std::io::ErrorKind;
 use std::path::PathBuf;
+use std::fmt::Formatter;
 
 #[derive(Default, Clone, Debug)]
 pub struct FileWalker {
@@ -167,6 +168,12 @@ fn is_symlink(path: &PathBuf) -> bool {
             log::warn!("{}: {:?}", err, path);
             false
         }
+    }
+}
+
+impl std::fmt::Display for FileWalker {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "current file: {:?}, current directory: {:?}", self.files.get(0), self.dirs.get(0))
     }
 }
 
