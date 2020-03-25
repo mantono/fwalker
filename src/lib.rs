@@ -93,14 +93,14 @@ impl FileWalker {
 
     /// Modifies the current instance of a FileWalker, retaining the current configuration for the
     /// FileWalker, but setting the maximum recursion depth to the maximum value of `depth`.
-    pub fn max_depth(&mut self, depth: u32) -> &mut FileWalker {
+    pub fn max_depth(mut self, depth: u32) -> FileWalker {
         self.max_depth = depth;
         self
     }
 
     /// Enable following of symlinks on the current FileWalker when traversing through files.
     /// Once this option has been enabled for a FileWalker, it cannot be disabled again.
-    pub fn follow_symlinks(&mut self) -> &mut FileWalker {
+    pub fn follow_symlinks(mut self) -> FileWalker {
         self.follow_symlinks = true;
         self
     }
@@ -275,8 +275,8 @@ mod tests {
 
     #[test]
     fn test_not_equals_different_settings() {
-        let walker0: FileWalker = FileWalker::from(TEST_DIR).unwrap().max_depth(1).to_owned();
-        let walker1: FileWalker = FileWalker::from(TEST_DIR).unwrap().follow_symlinks().to_owned();
+        let walker0: FileWalker = FileWalker::from(TEST_DIR).unwrap().max_depth(1);
+        let walker1: FileWalker = FileWalker::from(TEST_DIR).unwrap().follow_symlinks();
         assert_ne!(walker0, walker1)
     }
 
