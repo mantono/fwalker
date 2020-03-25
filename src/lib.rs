@@ -1,10 +1,10 @@
+use std::cmp::Ordering;
 use std::collections::VecDeque;
+use std::fmt::Formatter;
 use std::fs;
 use std::fs::{Metadata, ReadDir};
 use std::io::ErrorKind;
 use std::path::PathBuf;
-use std::fmt::Formatter;
-use std::cmp::Ordering;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FileWalker {
@@ -71,11 +71,11 @@ impl FileWalker {
         let path: &PathBuf = &path.into();
         if !path.exists() {
             let err = std::io::Error::from(ErrorKind::NotFound);
-            return Err(err)
+            return Err(err);
         }
         if !path.is_dir() {
             let err = std::io::Error::new(ErrorKind::InvalidInput, "Path is not a directory");
-            return Err(err)
+            return Err(err);
         }
         let mut dirs = VecDeque::with_capacity(1);
         dirs.push_back(path.clone());
@@ -174,7 +174,12 @@ fn is_symlink(path: &PathBuf) -> bool {
 
 impl std::fmt::Display for FileWalker {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "current file: {:?}, current directory: {:?}", self.files.get(0), self.dirs.get(0))
+        write!(
+            f,
+            "current file: {:?}, current directory: {:?}",
+            self.files.get(0),
+            self.dirs.get(0)
+        )
     }
 }
 
@@ -208,8 +213,8 @@ impl std::cmp::PartialOrd for FileWalker {
 #[cfg(test)]
 mod tests {
     use crate::FileWalker;
-    use std::path::PathBuf;
     use std::cmp::Ordering;
+    use std::path::PathBuf;
 
     const TEST_DIR: &str = "test_dirs";
 
@@ -232,7 +237,7 @@ mod tests {
         let dir = PathBuf::from("/dev/null/foo");
         match FileWalker::from(&dir) {
             Err(error) => assert_eq!(std::io::ErrorKind::NotFound, error.kind()),
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -241,7 +246,7 @@ mod tests {
         let dir = PathBuf::from("src/lib.rs");
         match FileWalker::from(&dir) {
             Err(error) => assert_eq!(std::io::ErrorKind::InvalidInput, error.kind()),
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
