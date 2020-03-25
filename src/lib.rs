@@ -107,6 +107,20 @@ impl FileWalker {
         self
     }
 
+    /// Reset a FileWalker to its original state, starting over with iterating from the _origin_
+    /// `PathBuf`. Changes made to the FileWalker after it was created with `max_depth()` and
+    /// `follow_symlinks()` will not be reseted.
+    ///
+    /// Unlike when the FileWalker was initially created, no validation will be done that the
+    /// path actually exists or that it is a directory, since both of these conditions must have
+    /// been met when the FileWalker was created.
+    pub fn reset(&mut self) -> &mut FileWalker {
+        self.files.clear();
+        self.dirs.clear();
+        self.dirs.push_back(self.origin.to_path_buf());
+        self
+    }
+
     fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
         let path: ReadDir = read_dirs(&path)?;
         let (files, dirs) = path
@@ -233,6 +247,15 @@ mod tests {
         let dir = PathBuf::from(TEST_DIR);
         let found = FileWalker::from(&dir).unwrap().max_depth(1).count();
         assert_eq!(3, found);
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut walker = FileWalker::from(TEST_DIR).unwrap();
+        let file0: PathBuf = walker.next().unwrap();
+        walker.reset();
+        let file1: PathBuf = walker.next().unwrap();
+        assert_eq!(file0, file1);
     }
 
     #[test]
