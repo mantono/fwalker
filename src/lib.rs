@@ -10,6 +10,7 @@ use std::path::PathBuf;
 pub struct FileWalker {
     files: VecDeque<PathBuf>,
     dirs: VecDeque<PathBuf>,
+    origin: PathBuf,
     origin_depth: usize,
     max_depth: u32,
     follow_symlinks: bool,
@@ -84,6 +85,7 @@ impl FileWalker {
         let walker = FileWalker {
             files,
             dirs,
+            origin: path.to_path_buf(),
             origin_depth: components(&path),
             max_depth: std::u32::MAX,
             follow_symlinks: false,
@@ -176,7 +178,8 @@ impl std::fmt::Display for FileWalker {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "current file: {:?}, current directory: {:?}",
+            "origin: {:?}, current file: {:?}, current directory: {:?}",
+            &self.origin,
             self.files.get(0),
             self.dirs.get(0)
         )
