@@ -13,3 +13,6 @@ keywords = ["fs", "filesystem", "files", "traversal"]
 
 [dependencies]
 log = "0.4"
+
+[badges]
+maintenance = { status = "experimental" }
