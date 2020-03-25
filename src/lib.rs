@@ -199,8 +199,8 @@ impl std::cmp::Ord for FileWalker {
 
 fn current_depth(walker: &FileWalker) -> usize {
     let fallback: PathBuf = PathBuf::new();
-    let path: &PathBuf = walker.files.get(0)
-        .unwrap_or(walker.dirs.get(0).unwrap_or(&fallback));
+    let path: &PathBuf =
+        walker.files.get(0).unwrap_or_else(|| walker.dirs.get(0).unwrap_or(&fallback));
     components(path)
 }
 
