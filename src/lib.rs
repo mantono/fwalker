@@ -128,6 +128,7 @@ impl FileWalker {
             .filter(|p: &PathBuf| self.follow_symlinks || !is_symlink(p))
             .filter(is_valid_target)
             .partition(|p| p.is_file());
+
         Ok((files, dirs))
     }
     fn push(&mut self, path: &PathBuf) {
@@ -148,7 +149,10 @@ impl FileWalker {
 }
 
 fn components(path: &PathBuf) -> usize {
-    path.canonicalize().expect("Unable to canonicalize path").components().count()
+    path.canonicalize()
+        .expect("Unable to canonicalize path")
+        .components()
+        .count()
 }
 
 impl Iterator for FileWalker {
@@ -215,8 +219,10 @@ impl std::cmp::Ord for FileWalker {
 
 fn current_depth(walker: &FileWalker) -> usize {
     let fallback: PathBuf = PathBuf::new();
-    let path: &PathBuf =
-        walker.files.get(0).unwrap_or_else(|| walker.dirs.get(0).unwrap_or(&fallback));
+    let path: &PathBuf = walker
+        .files
+        .get(0)
+        .unwrap_or_else(|| walker.dirs.get(0).unwrap_or(&fallback));
     components(path)
 }
 
