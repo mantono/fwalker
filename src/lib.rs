@@ -29,12 +29,15 @@ impl FileWalker {
     ///
     /// With a directory structure of
     ///
-    /// ```yaml
-    /// test_dirs:
-    ///   - file0
-    ///   sub_dir:
-    ///     - file1
-    ///     - file2
+    /// ```text
+    /// file0
+    /// dir0/
+    /// ├── file1
+    /// ├── file2
+    /// ├── empty_dir/
+    /// ├── .hidden_dir/
+    /// │   └── file3
+    /// └── .hidden_file
     /// ```
     ///
     /// the FileWalker should return the files as following
@@ -44,13 +47,9 @@ impl FileWalker {
     /// # fn main() -> Result<(), Box<dyn Error>> {
     /// use std::path::PathBuf;
     ///
-    /// let path = PathBuf::from("test_dirs");
-    /// let mut walker = walker::FileWalker::from(&path)?;
-    ///
-    /// assert_eq!(Some(PathBuf::from("test_dirs/file0").canonicalize()?), walker.next());
-    /// assert!(walker.next().is_some());
-    /// assert!(walker.next().is_some());
-    /// assert_eq!(None, walker.next());
+    /// let walker = walker::FileWalker::from("test_dirs").unwrap();
+    /// let found_files: usize = walker.count();
+    /// assert_eq!(5, found_files);
     /// #
     /// #    Ok(())
     /// # }
@@ -227,6 +226,20 @@ impl std::cmp::PartialOrd for FileWalker {
     }
 }
 
+/// All unit tests are run under the asumption that the `test_dirs`
+/// directory has the following structure
+///
+/// ```text
+/// file0
+/// dir0/
+/// ├── file1
+/// ├── file2
+/// ├── empty_dir/
+/// ├── .hidden_dir/
+/// │   └── file3
+/// └── .hidden_file
+/// ```
+/// and consisting of five files in total.
 #[cfg(test)]
 mod tests {
     use crate::FileWalker;
@@ -246,7 +259,7 @@ mod tests {
     fn test_depth_one() {
         let dir = PathBuf::from(TEST_DIR);
         let found = FileWalker::from(&dir).unwrap().max_depth(1).count();
-        assert_eq!(3, found);
+        assert_eq!(4, found);
     }
 
     #[test]
@@ -285,7 +298,7 @@ mod tests {
 
     #[test]
     fn test_not_equals_different_origin() {
-        let other_dir: String = format!("{}/sub_dir", TEST_DIR);
+        let other_dir: String = format!("{}/dir0", TEST_DIR);
         let walker0 = FileWalker::from(TEST_DIR).unwrap();
         let walker1 = FileWalker::from(other_dir).unwrap();
         assert_ne!(walker0, walker1)
