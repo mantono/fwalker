@@ -235,8 +235,77 @@ mod tests {
 
     const TEST_DIR: &str = "test_dirs";
 
+    mod util {
+        use std::env::temp_dir;
+        use std::fs;
+        use std::io::{Error, ErrorKind};
+        use std::path::PathBuf;
+
+        /// Create a temporary directory with the directory structure of
+        ///
+        /// ```text
+        /// file0
+        /// dir0/
+        /// ├── file1
+        /// ├── file2
+        /// ├── empty_dir/
+        /// ├── .hidden_dir/
+        /// │   └── file3
+        /// └── .hidden_file
+        /// ```
+        /// consisting of five files in total.
+        pub fn setup() -> Result<PathBuf, std::io::Error> {
+            let mut tmp: PathBuf = temp_dir();
+            tmp.push("walker_test");
+            if tmp.exists() {
+                if path_age_ms(&tmp)? > 10 {
+                    fs::remove_dir_all(&tmp)?;
+                } else {
+                    return Ok(tmp);
+                }
+            }
+            fs::create_dir(&tmp)?;
+
+            let dir0 = create_dir_in(&tmp, "dir0")?;
+            create_dir_in(&tmp, "dir0/empty_dir")?;
+            let hidden_dir = create_dir_in(&tmp, "dir0/.hidden_dir")?;
+
+            create_file_in(&tmp, "file0")?;
+            create_file_in(&dir0, "file1")?;
+            create_file_in(&dir0, "file2")?;
+            create_file_in(&hidden_dir, "file3")?;
+            create_file_in(&dir0, ".hidden_file")?;
+
+            println!("{:?}", tmp);
+            Ok(tmp)
+        }
+
+        fn path_age_ms(path: &PathBuf) -> Result<u64, std::io::Error> {
+            let created: std::time::SystemTime = path.metadata()?.modified()?;
+            match created.elapsed() {
+                Ok(time) => Ok(time.as_secs()),
+                Err(error) => Err(Error::new(ErrorKind::InvalidInput, error)),
+            }
+        }
+
+        fn create_dir_in(path: &PathBuf, dir: &str) -> Result<PathBuf, std::io::Error> {
+            let mut path: PathBuf = path.clone();
+            path.push(dir);
+            fs::create_dir(&path)?;
+            Ok(path)
+        }
+
+        fn create_file_in(path: &PathBuf, file: &str) -> Result<PathBuf, std::io::Error> {
+            let mut path: PathBuf = path.clone();
+            path.push(file);
+            fs::File::create(&path)?;
+            Ok(path)
+        }
+    }
+
     #[test]
     fn test_depth_only_root_dir() {
+        util::setup().unwrap();
         let dir = PathBuf::from(TEST_DIR);
         let found = FileWalker::from(&dir).unwrap().max_depth(0).count();
         assert_eq!(1, found);
@@ -336,5 +405,21 @@ mod tests {
         let walker0 = FileWalker::from(TEST_DIR).unwrap();
         let walker1 = FileWalker::from(TEST_DIR).unwrap();
         assert_eq!(walker0.cmp(walker1), Ordering::Equal)
+    }
+
+    #[test]
+    fn test_order_of_files() {
+        let path = PathBuf::from("test_dirs");
+        let mut walker = FileWalker::from(&path).unwrap();
+        assert_eq!(Some(PathBuf::from("test_dirs/file0").canonicalize().unwrap()), walker.next());
+        assert_in_dir(walker.next(), "test_dirs/sub_dir");
+        assert_in_dir(walker.next(), "test_dirs/sub_dir");
+        assert_eq!(None, walker.next());
+    }
+
+    fn assert_in_dir(path: Option<PathBuf>, dir: &str) {
+        let parent: PathBuf = path.unwrap().parent().unwrap().to_path_buf();
+        let dir: PathBuf = PathBuf::from(dir).canonicalize().unwrap();
+        assert_eq!(dir, parent)
     }
 }
