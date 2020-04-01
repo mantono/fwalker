@@ -7,7 +7,7 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct FileWalker {
+pub struct Walker {
     files: VecDeque<PathBuf>,
     dirs: VecDeque<PathBuf>,
     origin: PathBuf,
@@ -16,15 +16,15 @@ pub struct FileWalker {
     follow_symlinks: bool,
 }
 
-impl FileWalker {
-    /// Create a new FileWalker starting from the current directory (path `.`).
-    /// This FileWalker will not follow symlinks and will not have any limitation
+impl Walker {
+    /// Create a new Walker starting from the current directory (path `.`).
+    /// This Walker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
-    pub fn new() -> Result<FileWalker, std::io::Error> {
-        FileWalker::from(&PathBuf::from("."))
+    pub fn new() -> Result<Walker, std::io::Error> {
+        Walker::from(&PathBuf::from("."))
     }
 
-    /// Create a new FileWalker for the given path. This FileWalker will not follow
+    /// Create a new Walker for the given path. This Walker will not follow
     /// symlinks and will not have any limitation in recursion depth for directories.
     ///
     /// With a directory structure of
@@ -40,14 +40,14 @@ impl FileWalker {
     /// └── .hidden_file
     /// ```
     ///
-    /// the FileWalker should return the files as following
+    /// the Walker should return the files as following
     /// ```
     /// # use std::error::Error;
     /// #
     /// # fn main() -> Result<(), Box<dyn Error>> {
     /// use std::path::PathBuf;
     ///
-    /// let walker = fwalker::FileWalker::from("test_dirs").unwrap();
+    /// let walker = fwalker::Walker::from("test_dirs").unwrap();
     /// let found_files: usize = walker.count();
     /// assert_eq!(5, found_files);
     /// #
@@ -55,19 +55,19 @@ impl FileWalker {
     /// # }
     ///
     /// ```
-    /// FileWalker::from takes any argument that can be coverted into a PathBuf, so the following
+    /// Walker::from takes any argument that can be coverted into a PathBuf, so the following
     /// is possible as well
     /// ```
     /// # use std::error::Error;
     /// #
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// let mut walker = fwalker::FileWalker::from("test_dirs")?;
+    /// let mut walker = fwalker::Walker::from("test_dirs")?;
     /// assert!(walker.next().is_some());
     /// #
     /// #    Ok(())
     /// # }
     /// ```
-    pub fn from<T: Into<PathBuf>>(path: T) -> Result<FileWalker, std::io::Error> {
+    pub fn from<T: Into<PathBuf>>(path: T) -> Result<Walker, std::io::Error> {
         let path: &PathBuf = &path.into();
         if !path.exists() {
             let err = std::io::Error::from(ErrorKind::NotFound);
@@ -81,7 +81,7 @@ impl FileWalker {
         dirs.push_back(path.clone());
         let files = VecDeque::with_capacity(0);
 
-        let walker = FileWalker {
+        let walker = Walker {
             files,
             dirs,
             origin: path.to_path_buf(),
@@ -92,28 +92,28 @@ impl FileWalker {
         Ok(walker)
     }
 
-    /// Modifies the current instance of a FileWalker, retaining the current configuration for the
-    /// FileWalker, but setting the maximum recursion depth to the maximum value of `depth`.
-    pub fn max_depth(mut self, depth: u32) -> FileWalker {
+    /// Modifies the current instance of a Walker, retaining the current configuration for the
+    /// Walker, but setting the maximum recursion depth to the maximum value of `depth`.
+    pub fn max_depth(mut self, depth: u32) -> Walker {
         self.max_depth = depth;
         self
     }
 
-    /// Enable following of symlinks on the current FileWalker when traversing through files.
-    /// Once this option has been enabled for a FileWalker, it cannot be disabled again.
-    pub fn follow_symlinks(mut self) -> FileWalker {
+    /// Enable following of symlinks on the current Walker when traversing through files.
+    /// Once this option has been enabled for a Walker, it cannot be disabled again.
+    pub fn follow_symlinks(mut self) -> Walker {
         self.follow_symlinks = true;
         self
     }
 
-    /// Reset a FileWalker to its original state, starting over with iterating from the _origin_
-    /// `PathBuf`. Changes made to the FileWalker after it was created with `max_depth()` and
+    /// Reset a Walker to its original state, starting over with iterating from the _origin_
+    /// `PathBuf`. Changes made to the Walker after it was created with `max_depth()` and
     /// `follow_symlinks()` will not be reseted.
     ///
-    /// Unlike when the FileWalker was initially created, no validation will be done that the
+    /// Unlike when the Walker was initially created, no validation will be done that the
     /// path actually exists or that it is a directory, since both of these conditions must have
-    /// been met when the FileWalker was created.
-    pub fn reset(&mut self) -> &mut FileWalker {
+    /// been met when the Walker was created.
+    pub fn reset(&mut self) -> &mut Walker {
         self.files.clear();
         self.dirs.clear();
         self.dirs.push_back(self.origin.to_path_buf());
@@ -155,7 +155,7 @@ fn components(path: &PathBuf) -> usize {
         .count()
 }
 
-impl Iterator for FileWalker {
+impl Iterator for Walker {
     type Item = PathBuf;
     fn next(&mut self) -> Option<Self::Item> {
         match self.files.pop_front() {
@@ -191,7 +191,7 @@ fn is_symlink(path: &PathBuf) -> bool {
     }
 }
 
-impl std::fmt::Display for FileWalker {
+impl std::fmt::Display for Walker {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -203,13 +203,13 @@ impl std::fmt::Display for FileWalker {
     }
 }
 
-impl Default for FileWalker {
+impl Default for Walker {
     fn default() -> Self {
         Self::new().unwrap()
     }
 }
 
-impl std::cmp::Ord for FileWalker {
+impl std::cmp::Ord for Walker {
     fn cmp(&self, other: &Self) -> Ordering {
         let left: usize = current_depth(self);
         let right: usize = current_depth(other);
@@ -217,7 +217,7 @@ impl std::cmp::Ord for FileWalker {
     }
 }
 
-fn current_depth(walker: &FileWalker) -> usize {
+fn current_depth(walker: &Walker) -> usize {
     let fallback: PathBuf = PathBuf::new();
     let path: &PathBuf = walker
         .files
@@ -226,7 +226,7 @@ fn current_depth(walker: &FileWalker) -> usize {
     components(path)
 }
 
-impl std::cmp::PartialOrd for FileWalker {
+impl std::cmp::PartialOrd for Walker {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
@@ -248,7 +248,7 @@ impl std::cmp::PartialOrd for FileWalker {
 /// and consisting of five files in total.
 #[cfg(test)]
 mod tests {
-    use crate::FileWalker;
+    use crate::Walker;
     use std::cmp::Ordering;
     use std::path::PathBuf;
 
@@ -257,20 +257,20 @@ mod tests {
     #[test]
     fn test_depth_only_root_dir() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::from(&dir).unwrap().max_depth(0).count();
+        let found = Walker::from(&dir).unwrap().max_depth(0).count();
         assert_eq!(1, found);
     }
 
     #[test]
     fn test_depth_one() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = FileWalker::from(&dir).unwrap().max_depth(1).count();
+        let found = Walker::from(&dir).unwrap().max_depth(1).count();
         assert_eq!(4, found);
     }
 
     #[test]
     fn test_reset() {
-        let mut walker = FileWalker::from(TEST_DIR).unwrap();
+        let mut walker = Walker::from(TEST_DIR).unwrap();
         let file0: PathBuf = walker.next().unwrap();
         walker.reset();
         let file1: PathBuf = walker.next().unwrap();
@@ -280,7 +280,7 @@ mod tests {
     #[test]
     fn test_path_not_found() {
         let dir = PathBuf::from("/dev/null/foo");
-        match FileWalker::from(&dir) {
+        match Walker::from(&dir) {
             Err(error) => assert_eq!(std::io::ErrorKind::NotFound, error.kind()),
             _ => panic!(),
         }
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn test_path_not_a_dir() {
         let dir = PathBuf::from("src/lib.rs");
-        match FileWalker::from(&dir) {
+        match Walker::from(&dir) {
             Err(error) => assert_eq!(std::io::ErrorKind::InvalidInput, error.kind()),
             _ => panic!(),
         }
@@ -297,45 +297,45 @@ mod tests {
 
     #[test]
     fn test_equals() {
-        let walker0 = FileWalker::from(TEST_DIR).unwrap();
-        let walker1 = FileWalker::from(TEST_DIR).unwrap();
+        let walker0 = Walker::from(TEST_DIR).unwrap();
+        let walker1 = Walker::from(TEST_DIR).unwrap();
         assert_eq!(walker0, walker1)
     }
 
     #[test]
     fn test_not_equals_different_origin() {
         let other_dir: String = format!("{}/dir0", TEST_DIR);
-        let walker0 = FileWalker::from(TEST_DIR).unwrap();
-        let walker1 = FileWalker::from(other_dir).unwrap();
+        let walker0 = Walker::from(TEST_DIR).unwrap();
+        let walker1 = Walker::from(other_dir).unwrap();
         assert_ne!(walker0, walker1)
     }
 
     #[test]
     fn test_not_equals_different_state() {
-        let walker0 = FileWalker::from(TEST_DIR).unwrap();
-        let mut walker1 = FileWalker::from(TEST_DIR).unwrap();
+        let walker0 = Walker::from(TEST_DIR).unwrap();
+        let mut walker1 = Walker::from(TEST_DIR).unwrap();
         walker1.next();
         assert_ne!(walker0, walker1)
     }
 
     #[test]
     fn test_not_equals_different_settings() {
-        let walker0: FileWalker = FileWalker::from(TEST_DIR).unwrap().max_depth(1);
-        let walker1: FileWalker = FileWalker::from(TEST_DIR).unwrap().follow_symlinks();
+        let walker0: Walker = Walker::from(TEST_DIR).unwrap().max_depth(1);
+        let walker1: Walker = Walker::from(TEST_DIR).unwrap().follow_symlinks();
         assert_ne!(walker0, walker1)
     }
 
     #[test]
     fn test_default() {
-        let walker0: FileWalker = FileWalker::new().unwrap();
-        let walker1: FileWalker = Default::default();
+        let walker0: Walker = Walker::new().unwrap();
+        let walker1: Walker = Default::default();
         assert_eq!(walker0, walker1)
     }
 
     #[test]
     fn test_ordering_less_than() {
-        let mut walker0 = FileWalker::from(TEST_DIR).unwrap();
-        let walker1 = FileWalker::from(TEST_DIR).unwrap();
+        let mut walker0 = Walker::from(TEST_DIR).unwrap();
+        let walker1 = Walker::from(TEST_DIR).unwrap();
         walker0.next();
         walker0.next();
         assert!(walker0 < walker1)
@@ -343,8 +343,8 @@ mod tests {
 
     #[test]
     fn test_ordering_greater_than() {
-        let walker0 = FileWalker::from(TEST_DIR).unwrap();
-        let mut walker1 = FileWalker::from(TEST_DIR).unwrap();
+        let walker0 = Walker::from(TEST_DIR).unwrap();
+        let mut walker1 = Walker::from(TEST_DIR).unwrap();
         walker1.next();
         walker1.next();
         assert!(walker0 > walker1)
@@ -352,8 +352,8 @@ mod tests {
 
     #[test]
     fn test_ordering_equal() {
-        let walker0 = FileWalker::from(TEST_DIR).unwrap();
-        let walker1 = FileWalker::from(TEST_DIR).unwrap();
+        let walker0 = Walker::from(TEST_DIR).unwrap();
+        let walker1 = Walker::from(TEST_DIR).unwrap();
         assert_eq!(walker0.cmp(walker1), Ordering::Equal)
     }
 }
