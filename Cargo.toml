@@ -1,6 +1,6 @@
 [package]
 name = "fwalker"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Anton Österberg <anton@42x.io>"]
 edition = "2018"
 license = "MIT"
