@@ -9,6 +9,12 @@ A cargo crate for file and directory traversal in a file system through an itera
 See [docs.rs/fwalker](https://docs.rs/fwalker/) for complete documentation
 
 ## Usage
+Add crate to Cargo.toml to use it
+
+```toml
+[dependencies]
+fwalker = "0.2"
+```
 
 This crate has only one public struct, `fwalker::Walker`. With this struct, files and directories
 can be iterated over for any kind of listing, manipulation or processing. Creating a new walker can
@@ -17,6 +23,7 @@ be done with either
 - `fwalker::Walker::from("/some/path")` - starts from path `/some/path`
 
 Quick example to get you started
+
 ```rust
 use fwalker::Walker;
 use std::path::PathBuf;
