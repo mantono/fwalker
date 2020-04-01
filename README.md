@@ -5,6 +5,9 @@ A cargo crate for file and directory traversal in a file system through an itera
 ![Security Audit](https://github.com/mantono/fwalker/workflows/Security%20Audit/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+## Documentation
+See [docs.rs/fwalker](https://docs.rs/fwalker/) for complete documentation
+
 ## Usage
 
 This crate has only one public struct, `fwalker::Walker`. With this struct, files and directories
