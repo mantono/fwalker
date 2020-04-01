@@ -25,8 +25,11 @@ fn main() {
         .for_each(|file: PathBuf| println!("{:?}", file));
 }
 ```
-which would give you the output
-> "/proc/sys/abi/vsyscall32"
+
+which would yield the output
+
+```
+"/proc/sys/abi/vsyscall32"
 "/proc/sys/debug/exception-trace"
 "/proc/sys/debug/kprobes-optimization"
 "/proc/sys/fs/aio-max-nr"
@@ -36,3 +39,4 @@ which would give you the output
 "/proc/sys/fs/file-max"
 "/proc/sys/fs/file-nr"
 "/proc/sys/fs/inode-nr"
+```
