@@ -19,7 +19,7 @@ use fwalker::Walker;
 use std::path::PathBuf;
 
 fn main() {
-    fwalker::Walker::from("/proc/sys")
+    Walker::from("/proc/sys")
         .expect("This *should* work")
         .take(10)
         .for_each(|file: PathBuf| println!("{:?}", file));
