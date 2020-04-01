@@ -47,7 +47,7 @@ impl Walker {
     /// # fn main() -> Result<(), Box<dyn Error>> {
     /// use std::path::PathBuf;
     ///
-    /// let walker = fwalker::Walker::from("test_dirs").unwrap();
+    /// let walker = fwalker::Walker::from("test_dirs")?;
     /// let found_files: usize = walker.count();
     /// assert_eq!(5, found_files);
     /// #
