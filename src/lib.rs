@@ -47,7 +47,7 @@ impl FileWalker {
     /// # fn main() -> Result<(), Box<dyn Error>> {
     /// use std::path::PathBuf;
     ///
-    /// let walker = walker::FileWalker::from("test_dirs").unwrap();
+    /// let walker = fwalker::FileWalker::from("test_dirs").unwrap();
     /// let found_files: usize = walker.count();
     /// assert_eq!(5, found_files);
     /// #
@@ -61,7 +61,7 @@ impl FileWalker {
     /// # use std::error::Error;
     /// #
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// let mut walker = walker::FileWalker::from("test_dirs")?;
+    /// let mut walker = fwalker::FileWalker::from("test_dirs")?;
     /// assert!(walker.next().is_some());
     /// #
     /// #    Ok(())
