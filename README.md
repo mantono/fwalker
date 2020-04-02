@@ -6,7 +6,7 @@ A cargo crate for file and directory traversal in a file system through an itera
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Documentation
-See [docs.rs/fwalker](https://docs.rs/fwalker/) for complete documentation
+See [docs.rs/fwalker](https://docs.rs/fwalker/) for complete documentation and more advanced usage.
 
 ## Usage
 Add crate to Cargo.toml to use it
