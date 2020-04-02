@@ -1,15 +1,17 @@
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::fmt::Formatter;
-use std::fs;
 use std::fs::{Metadata, ReadDir};
 use std::io::ErrorKind;
 use std::path::PathBuf;
+
+mod fs;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Walker {
     files: VecDeque<PathBuf>,
     dirs: VecDeque<PathBuf>,
+    ignore: Vec<PathBuf>,
     origin: PathBuf,
     origin_depth: usize,
     max_depth: u32,
@@ -21,6 +23,7 @@ impl Walker {
     /// This Walker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
     pub fn new() -> Result<Walker, std::io::Error> {
+        fs::filesystems().unwrap();
         Walker::from(&PathBuf::from("."))
     }
 
@@ -84,6 +87,7 @@ impl Walker {
         let walker = Walker {
             files,
             dirs,
+            ignore: vec![],
             origin: path.to_path_buf(),
             origin_depth: components(&path),
             max_depth: std::u32::MAX,
@@ -120,6 +124,15 @@ impl Walker {
         self
     }
 
+    /// Prevent the Walker from entering other file systems while traversing a directory structure.
+    /// This means that subdirectories of a directory that belongs to another file system will be
+    /// ignored.
+    pub fn only_local_fs(mut self) -> Result<Walker, std::io::Error> {
+        let filesystems = fs::filesystems()?;
+        self.ignore = fs::fs_boundaries(&filesystems, &self.origin);
+        Ok(self)
+    }
+
     fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
         let path: ReadDir = read_dirs(&path)?;
         let (files, dirs) = path
@@ -137,6 +150,7 @@ impl Walker {
                 self.files.extend(files);
                 let current_depth: u32 = self.depth(path) as u32;
                 if current_depth < self.max_depth {
+                    let dirs: Vec<PathBuf> = filter_boundaries(dirs, &self.ignore);
                     self.dirs.extend(dirs);
                 }
             }
@@ -153,6 +167,13 @@ fn components(path: &PathBuf) -> usize {
         .expect("Unable to canonicalize path")
         .components()
         .count()
+}
+
+fn filter_boundaries(dirs: Vec<PathBuf>, boundaries: &[PathBuf]) -> Vec<PathBuf> {
+    dirs.iter()
+        .filter(|d| !boundaries.contains(d))
+        .map(|d| d.to_path_buf())
+        .collect()
 }
 
 impl Iterator for Walker {
@@ -173,7 +194,7 @@ impl Iterator for Walker {
 
 fn read_dirs(path: &PathBuf) -> Result<ReadDir, std::io::Error> {
     let full_path: PathBuf = path.canonicalize()?;
-    Ok(fs::read_dir(full_path)?)
+    Ok(std::fs::read_dir(full_path)?)
 }
 
 fn is_valid_target(path: &PathBuf) -> bool {
