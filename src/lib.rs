@@ -23,7 +23,6 @@ impl Walker {
     /// This Walker will not follow symlinks and will not have any limitation
     /// in recursion depth for directories.
     pub fn new() -> Result<Walker, std::io::Error> {
-        fs::filesystems().unwrap();
         Walker::from(&PathBuf::from("."))
     }
 
