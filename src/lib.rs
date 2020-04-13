@@ -127,7 +127,7 @@ impl Walker {
     /// This means that subdirectories of a directory that belongs to another file system will be
     /// ignored.
     pub fn only_local_fs(mut self) -> Result<Walker, std::io::Error> {
-        let filesystems = fs::filesystems()?;
+        let filesystems = fs::filesystems();
         self.ignore = fs::fs_boundaries(&filesystems, &self.origin);
         Ok(self)
     }

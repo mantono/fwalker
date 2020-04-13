@@ -1,4 +1,6 @@
 use std::path::PathBuf;
+use sysinfo::DiskExt;
+use sysinfo::{RefreshKind, System, SystemExt};
 
 /// Given an array of known file systems and a path
 pub(crate) fn fs_boundaries(filesystems: &[PathBuf], path: &PathBuf) -> Vec<PathBuf> {
@@ -10,28 +12,25 @@ pub(crate) fn fs_boundaries(filesystems: &[PathBuf], path: &PathBuf) -> Vec<Path
         .collect()
 }
 
-const LINUX_MOUNTS_FILE: &str = "/proc/mounts";
-
-/// On Linux, read mounted file systems for /proc/mounts and cross reference
-/// them with paths to search with, and filter out any overlaps.
-///
-/// Mac OS X should be similar. Have no idea how to solve Windows, yet.
-pub(crate) fn filesystems() -> Result<Vec<PathBuf>, std::io::Error> {
-    let mounts: String = std::fs::read_to_string(LINUX_MOUNTS_FILE)?;
-
-    let mounts: Vec<PathBuf> = mounts
-        .lines()
-        .map(|line: &str| line.split_ascii_whitespace().nth(1).unwrap())
-        .map(PathBuf::from)
-        .collect();
-
-    Ok(mounts)
+pub(crate) fn filesystems() -> Vec<PathBuf> {
+    let refresh: RefreshKind = RefreshKind::new().with_disks_list().with_disks();
+    System::new_with_specifics(refresh)
+        .get_disks()
+        .iter()
+        .map(|disk| disk.get_mount_point().to_path_buf())
+        .collect::<Vec<PathBuf>>()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::fs::fs_boundaries;
+    use crate::fs::{filesystems, fs_boundaries};
     use std::path::PathBuf;
+
+    #[test]
+    fn test_filesystems_are_never_empty() {
+        let filesystems: Vec<PathBuf> = filesystems();
+        assert!(!filesystems.is_empty())
+    }
 
     #[test]
     fn test_fs_boundaries_no_boundary() {
