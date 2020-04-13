@@ -2,7 +2,8 @@ use std::path::PathBuf;
 use sysinfo::DiskExt;
 use sysinfo::{RefreshKind, System, SystemExt};
 
-/// Given an array of known file systems and a path
+/// Given an array of known file systems and a path, return any file system which has
+/// a mount point that is a sub directory of the path argument
 pub(crate) fn fs_boundaries(filesystems: &[PathBuf], path: &PathBuf) -> Vec<PathBuf> {
     filesystems
         .iter()
@@ -11,6 +12,8 @@ pub(crate) fn fs_boundaries(filesystems: &[PathBuf], path: &PathBuf) -> Vec<Path
         .collect()
 }
 
+/// Return all mounted file systems on the system that is assoicated with a disk
+/// of some kind
 pub(crate) fn filesystems() -> Vec<PathBuf> {
     let refresh: RefreshKind = RefreshKind::new().with_disks_list().with_disks();
     System::new_with_specifics(refresh)
