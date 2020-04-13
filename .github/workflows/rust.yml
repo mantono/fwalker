@@ -9,7 +9,12 @@ on:
       - '.github/workflows/rust.yml'
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+      max-parallel: 3
+      fail-fast: false
     steps:
     - uses: actions/checkout@v1
     - uses: actions/cache@v1
