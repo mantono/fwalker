@@ -5,7 +5,6 @@ use sysinfo::{RefreshKind, System, SystemExt};
 /// Given an array of known file systems and a path
 pub(crate) fn fs_boundaries(filesystems: &[PathBuf], path: &PathBuf) -> Vec<PathBuf> {
     filesystems
-        //.clone()
         .iter()
         .filter(|fs| fs.starts_with(path) && *fs != path)
         .map(PathBuf::from)
