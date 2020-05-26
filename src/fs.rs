@@ -12,7 +12,7 @@ pub(crate) fn fs_boundaries(filesystems: &[PathBuf], path: &PathBuf) -> Vec<Path
         .collect()
 }
 
-/// Return all mounted file systems on the system that is assoicated with a disk
+/// Return all mounted file systems on the system that is associated with a disk
 /// of some kind
 pub(crate) fn filesystems() -> Vec<PathBuf> {
     let refresh: RefreshKind = RefreshKind::new().with_disks_list().with_disks();
