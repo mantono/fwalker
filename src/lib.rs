@@ -112,10 +112,10 @@ impl Walker {
     /// Prevent the Walker from entering other file systems while traversing a directory structure.
     /// This means that subdirectories of a directory that belongs to another file system will be
     /// ignored.
-    pub fn only_local_fs(mut self) -> Result<Walker, std::io::Error> {
+    pub fn only_local_fs(mut self) -> Walker {
         let filesystems = fs::filesystems();
         self.ignore = fs::fs_boundaries(&filesystems, &self.origin);
-        Ok(self)
+        self
     }
 
     /// Reset a Walker to its original state, starting over with iterating from the _origin_
