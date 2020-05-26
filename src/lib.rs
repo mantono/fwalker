@@ -109,6 +109,15 @@ impl Walker {
         self
     }
 
+    /// Prevent the Walker from entering other file systems while traversing a directory structure.
+    /// This means that subdirectories of a directory that belongs to another file system will be
+    /// ignored.
+    pub fn only_local_fs(mut self) -> Result<Walker, std::io::Error> {
+        let filesystems = fs::filesystems();
+        self.ignore = fs::fs_boundaries(&filesystems, &self.origin);
+        Ok(self)
+    }
+
     /// Reset a Walker to its original state, starting over with iterating from the _origin_
     /// `PathBuf`. Changes made to the Walker after it was created with `max_depth()` and
     /// `follow_symlinks()` will not be reseted.
@@ -121,15 +130,6 @@ impl Walker {
         self.dirs.clear();
         self.dirs.push_back(self.origin.to_path_buf());
         self
-    }
-
-    /// Prevent the Walker from entering other file systems while traversing a directory structure.
-    /// This means that subdirectories of a directory that belongs to another file system will be
-    /// ignored.
-    pub fn only_local_fs(mut self) -> Result<Walker, std::io::Error> {
-        let filesystems = fs::filesystems();
-        self.ignore = fs::fs_boundaries(&filesystems, &self.origin);
-        Ok(self)
     }
 
     fn load(&self, path: &PathBuf) -> Result<(Vec<PathBuf>, Vec<PathBuf>), std::io::Error> {
