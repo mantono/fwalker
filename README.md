@@ -13,7 +13,7 @@ Add crate to Cargo.toml to use it
 
 ```toml
 [dependencies]
-fwalker = "0.2"
+fwalker = "0.3"
 ```
 
 This crate has only one public struct, `fwalker::Walker`. With this struct, files and directories
