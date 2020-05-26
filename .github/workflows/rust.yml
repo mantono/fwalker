@@ -9,14 +9,19 @@ on:
       - '.github/workflows/rust.yml'
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+      max-parallel: 3
+      fail-fast: false
     steps:
     - uses: actions/checkout@v1
     - uses: actions/cache@v1
       id: cache-cargo-fetch
       with:
         key: ${{ runner.os }}-cargo-fetch-${{ hashFiles('Cargo.lock') }}
-        path: target/release
+        path: target
         restore-keys: ${{ runner.os }}-cargo-fetch
     - name: Fetch Dependencies
       if: steps.cache-cargo-fetch.outputs.cache-hit != 'true'
