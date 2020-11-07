@@ -120,7 +120,7 @@ impl Walker {
 
     /// Reset a Walker to its original state, starting over with iterating from the _origin_
     /// `PathBuf`. Changes made to the Walker after it was created with `max_depth()` and
-    /// `follow_symlinks()` will not be reseted.
+    /// `follow_symlinks()` will not be reset.
     ///
     /// Unlike when the Walker was initially created, no validation will be done that the
     /// path actually exists or that it is a directory, since both of these conditions must have
@@ -252,7 +252,7 @@ impl std::cmp::PartialOrd for Walker {
     }
 }
 
-/// All unit tests are run under the asumption that the `test_dirs`
+/// All unit tests are run under the assumption that the `test_dirs`
 /// directory has the following structure
 ///
 /// ```text
