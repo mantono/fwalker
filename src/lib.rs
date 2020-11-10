@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::fmt::Formatter;
-use std::fs::{Metadata, ReadDir};
+use std::fs::ReadDir;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
@@ -197,8 +197,13 @@ fn read_dirs(path: &PathBuf) -> Result<ReadDir, std::io::Error> {
 }
 
 fn is_valid_target(path: &PathBuf) -> bool {
-    let metadata: Metadata = path.metadata().expect("Unable to retrieve metadata:");
-    metadata.is_file() || metadata.is_dir()
+    match path.metadata() {
+        Ok(metadata) => metadata.is_file() || metadata.is_dir(),
+        Err(err) => {
+            log::warn!("Unable to retrieve metadata for {:?}: {}", path, err);
+            false
+        }
+    }
 }
 
 fn is_symlink(path: &PathBuf) -> bool {
