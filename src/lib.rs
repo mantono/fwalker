@@ -178,15 +178,17 @@ fn filter_boundaries(dirs: Vec<PathBuf>, boundaries: &[PathBuf]) -> Vec<PathBuf>
 impl Iterator for Walker {
     type Item = PathBuf;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.files.pop_front() {
-            Some(f) => Some(f),
-            None => match self.dirs.pop_front() {
-                Some(d) => {
-                    self.push(&d);
-                    self.next()
-                }
-                None => None,
-            },
+        loop {
+            match self.files.pop_front() {
+                Some(f) => break Some(f),
+                None => match self.dirs.pop_front() {
+                    Some(d) => {
+                        self.push(&d);
+                        continue;
+                    }
+                    None => break None,
+                },
+            }
         }
     }
 }
