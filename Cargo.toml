@@ -17,3 +17,6 @@ sysinfo = "0.15"
 
 [badges]
 maintenance = { status = "experimental" }
+
+[profile.release]
+lto = true
