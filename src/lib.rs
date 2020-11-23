@@ -26,8 +26,19 @@ impl Walker {
         Walker::from(&PathBuf::from("."))
     }
 
-    /// Create a new Walker for the given path. This Walker will not follow
-    /// symlinks and will not have any limitation in recursion depth for directories.
+    /// Create a new Walker starting from the current directory (path `.`), with the
+    /// given initial capacity for the internal vectors used to store files and
+    /// directories.
+    ///
+    /// This Walker will not follow symlinks and will not have any limitation
+    /// in recursion depth for directories.
+    pub fn with_capacity(capacity: usize) -> Result<Walker, std::io::Error> {
+        Walker::from_with_capacity(&PathBuf::from("."), capacity)
+    }
+
+    /// Create a new Walker for the given path with an initial capacity of 16.
+    /// This Walker will not follow symlinks and will not have any limitation
+    /// in recursion depth for directories.
     ///
     /// With a directory structure of
     ///
@@ -70,6 +81,16 @@ impl Walker {
     /// # }
     /// ```
     pub fn from<T: Into<PathBuf>>(path: T) -> Result<Walker, std::io::Error> {
+        Walker::from_with_capacity(path, 16)
+    }
+
+    /// Create a new Walker for the given path with the given initial capacity.
+    /// This Walker will not follow symlinks and will not have any limitation
+    /// in recursion depth for directories.
+    pub fn from_with_capacity<T: Into<PathBuf>>(
+        path: T,
+        capacity: usize,
+    ) -> Result<Walker, std::io::Error> {
         let path: &PathBuf = &path.into();
         if !path.exists() {
             let err = std::io::Error::from(ErrorKind::NotFound);
@@ -79,9 +100,9 @@ impl Walker {
             let err = std::io::Error::new(ErrorKind::InvalidInput, "Path is not a directory");
             return Err(err);
         }
-        let mut dirs = VecDeque::with_capacity(1);
+        let mut dirs = VecDeque::with_capacity(capacity);
         dirs.push_back(path.clone());
-        let files = VecDeque::with_capacity(0);
+        let files = VecDeque::with_capacity(capacity);
 
         let walker = Walker {
             files,
@@ -324,7 +345,7 @@ mod tests {
 
     #[test]
     fn test_equals() {
-        let walker0 = Walker::from(TEST_DIR).unwrap();
+        let walker0 = Walker::from_with_capacity(TEST_DIR, 4).unwrap();
         let walker1 = Walker::from(TEST_DIR).unwrap();
         assert_eq!(walker0, walker1)
     }
