@@ -225,13 +225,7 @@ fn is_valid_target(entry: &DirEntry, follow_symlinks: bool) -> bool {
         Ok(ftype) => ftype,
         Err(_) => return false,
     };
-    if file_type.is_file() || file_type.is_dir() {
-        true
-    } else if follow_symlinks && file_type.is_symlink() {
-        true
-    } else {
-        false
-    }
+    file_type.is_file() || file_type.is_dir() || (follow_symlinks && file_type.is_symlink())
 }
 
 impl std::fmt::Display for Walker {
