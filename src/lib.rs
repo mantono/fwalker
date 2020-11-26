@@ -1,9 +1,9 @@
-use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::fmt::Formatter;
 use std::fs::ReadDir;
 use std::io::ErrorKind;
 use std::path::PathBuf;
+use std::{cmp::Ordering, fs::DirEntry};
 
 mod fs;
 
@@ -157,13 +157,13 @@ impl Walker {
         let path: ReadDir = read_dirs(&path)?;
         let (files, dirs) = path
             .filter_map(|p| p.ok())
-            .map(|p| p.path())
-            .filter(|p: &PathBuf| self.follow_symlinks || !is_symlink(p))
-            .filter(is_valid_target)
+            .filter(|d: &DirEntry| is_valid_target(d, self.follow_symlinks))
+            .map(|d: DirEntry| d.path())
             .partition(|p| p.is_file());
 
         Ok((files, dirs))
     }
+
     fn push(&mut self, path: &PathBuf) {
         match self.load(path) {
             Ok((files, dirs)) => {
@@ -219,23 +219,18 @@ fn read_dirs(path: &PathBuf) -> Result<ReadDir, std::io::Error> {
     Ok(std::fs::read_dir(full_path)?)
 }
 
-fn is_valid_target(path: &PathBuf) -> bool {
-    match path.metadata() {
-        Ok(metadata) => metadata.is_file() || metadata.is_dir(),
-        Err(err) => {
-            log::warn!("Unable to retrieve metadata for {:?}: {}", path, err);
-            false
-        }
-    }
-}
-
-fn is_symlink(path: &PathBuf) -> bool {
-    match path.symlink_metadata() {
-        Ok(sym) => sym.file_type().is_symlink(),
-        Err(err) => {
-            log::warn!("{}: {:?}", err, path);
-            false
-        }
+#[inline]
+fn is_valid_target(entry: &DirEntry, follow_symlinks: bool) -> bool {
+    let file_type: std::fs::FileType = match entry.file_type() {
+        Ok(ftype) => ftype,
+        Err(_) => return false,
+    };
+    if file_type.is_file() || file_type.is_dir() {
+        true
+    } else if follow_symlinks && file_type.is_symlink() {
+        true
+    } else {
+        false
     }
 }
 
