@@ -399,4 +399,24 @@ mod tests {
         let walker1 = Walker::from(TEST_DIR).unwrap();
         assert_eq!(walker0.cmp(walker1), Ordering::Equal)
     }
+
+    #[test]
+    #[ignore]
+    fn test_bench() {
+        use std::time::Duration;
+
+        let iterations: u64 = 20;
+        let file_limit = 300_000;
+        let mut time: Vec<Duration> = Vec::with_capacity(iterations as usize);
+        for _ in 0..iterations {
+            let start = std::time::Instant::now();
+            let found: usize = Walker::from("/").unwrap().take(file_limit).count();
+            let end = std::time::Instant::now();
+            let duration = end.duration_since(start);
+            time.push(duration);
+            assert_eq!(file_limit, found)
+        }
+        let avg: u64 = time.iter().map(|d| d.as_millis()).sum::<u128>() as u64 / iterations;
+        println!("Avg time {} ms", avg);
+    }
 }
