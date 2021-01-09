@@ -1,4 +1,4 @@
-name: Build & Test
+name: Benchmark
 on:
   pull_request:
     types: [opened, ready_for_review, reopened, closed]
@@ -9,13 +9,8 @@ on:
       - ".github/workflows/bench.yml"
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest]
-      max-parallel: 2
-      fail-fast: false
+  bench:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - name: Fetch Dependencies
