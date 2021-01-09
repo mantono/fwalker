@@ -15,5 +15,7 @@ jobs:
       - uses: actions/checkout@v1
       - name: Fetch Dependencies
         run: cargo fetch
+      - name: Build
+        run: cargo build --release
       - name: Benchmark
         run: cargo test --release -- --ignored --show-output
