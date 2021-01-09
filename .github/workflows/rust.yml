@@ -17,8 +17,6 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v1
-      - name: Restore Cache
-        uses: Swatinem/rust-cache@v1
       - name: Fetch Dependencies
         run: cargo fetch
       - name: Build
