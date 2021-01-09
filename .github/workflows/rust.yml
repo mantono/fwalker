@@ -23,6 +23,14 @@ jobs:
         run: cargo build --all-features
       - name: Run tests
         run: cargo test
+      - name: Start SSH session
+        if: ${{ failure() }}
+        uses: luchihoratiu/debug-via-ssh@main
+        with:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+          NGROK_REGION: eu
+          NGROK_TIMEOUT: 1800
+          SSH_PASS: ${{ secrets.SSH_PASS }}
 
   lint:
     runs-on: ubuntu-latest
