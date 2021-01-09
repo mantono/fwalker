@@ -399,7 +399,7 @@ mod tests {
     fn test_bench() {
         use std::time::Duration;
 
-        let iterations: u64 = 20;
+        let iterations: u64 = 100;
         let file_limit = 300_000;
         let mut time: Vec<Duration> = Vec::with_capacity(iterations as usize);
         for _ in 0..iterations {
