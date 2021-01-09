@@ -306,6 +306,12 @@ mod tests {
     }
 
     #[test]
+    fn test_find_all() {
+        let found = Walker::from(TEST_DIR).unwrap().count();
+        assert_eq!(5, found);
+    }
+
+    #[test]
     fn test_reset() {
         let mut walker = Walker::from(TEST_DIR).unwrap();
         let file0: PathBuf = walker.next().unwrap();
