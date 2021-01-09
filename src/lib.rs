@@ -168,19 +168,22 @@ impl Walker {
         match self.load(path) {
             Ok((files, dirs)) => {
                 self.files.extend(files);
-                let recur: bool = match self.max_depth {
-                    Some(max_depth) => {
-                        let current_depth: u32 = self.depth(path) as u32;
-                        current_depth < max_depth
-                    }
-                    None => true,
-                };
-                if recur {
+                if !self.at_max_depth(path) {
                     let dirs: Vec<PathBuf> = filter_boundaries(dirs, &self.ignore);
                     self.dirs.extend(dirs);
                 }
             }
             Err(e) => log::warn!("{}: {:?}", e, path),
+        }
+    }
+
+    fn at_max_depth(&self, path: &PathBuf) -> bool {
+        match self.max_depth {
+            Some(max_depth) => {
+                let current_depth: u32 = self.depth(path) as u32;
+                current_depth >= max_depth
+            }
+            None => false,
         }
     }
 
@@ -409,6 +412,7 @@ mod tests {
 
     #[test]
     #[ignore]
+    /// Run with `cargo test --release -- --ignored --show-output`
     fn test_bench() {
         use std::time::Duration;
 
