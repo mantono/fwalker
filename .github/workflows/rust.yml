@@ -29,7 +29,7 @@ jobs:
         with:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
           NGROK_REGION: eu
-          NGROK_TIMEOUT: 1800
+          NGROK_TIMEOUT: 180
           SSH_PASS: ${{ secrets.SSH_PASS }}
 
   lint:
