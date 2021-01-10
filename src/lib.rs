@@ -14,7 +14,7 @@ pub struct Walker {
     ignore: Vec<PathBuf>,
     origin: PathBuf,
     origin_depth: usize,
-    max_depth: u32,
+    max_depth: Option<u32>,
     follow_symlinks: bool,
 }
 
@@ -110,7 +110,7 @@ impl Walker {
             ignore: vec![],
             origin: path.to_path_buf(),
             origin_depth: components(&path),
-            max_depth: std::u32::MAX,
+            max_depth: None,
             follow_symlinks: false,
         };
         Ok(walker)
@@ -119,7 +119,7 @@ impl Walker {
     /// Modifies the current instance of a Walker, retaining the current configuration for the
     /// Walker, but setting the maximum recursion depth to the maximum value of `depth`.
     pub fn max_depth(mut self, depth: u32) -> Walker {
-        self.max_depth = depth;
+        self.max_depth = Some(depth);
         self
     }
 
@@ -168,8 +168,7 @@ impl Walker {
         match self.load(path) {
             Ok((files, dirs)) => {
                 self.files.extend(files);
-                let current_depth: u32 = self.depth(path) as u32;
-                if current_depth < self.max_depth {
+                if !self.at_max_depth(path) {
                     let dirs: Vec<PathBuf> = filter_boundaries(dirs, &self.ignore);
                     self.dirs.extend(dirs);
                 }
@@ -177,6 +176,17 @@ impl Walker {
             Err(e) => log::warn!("{}: {:?}", e, path),
         }
     }
+
+    fn at_max_depth(&self, path: &PathBuf) -> bool {
+        match self.max_depth {
+            Some(max_depth) => {
+                let current_depth: u32 = self.depth(path) as u32;
+                current_depth >= max_depth
+            }
+            None => false,
+        }
+    }
+
     fn depth(&self, dir: &PathBuf) -> usize {
         components(dir) - self.origin_depth
     }
@@ -306,6 +316,12 @@ mod tests {
     }
 
     #[test]
+    fn test_find_all() {
+        let found = Walker::from(TEST_DIR).unwrap().count();
+        assert_eq!(5, found);
+    }
+
+    #[test]
     fn test_reset() {
         let mut walker = Walker::from(TEST_DIR).unwrap();
         let file0: PathBuf = walker.next().unwrap();
@@ -396,6 +412,7 @@ mod tests {
 
     #[test]
     #[ignore]
+    /// Run with `cargo test --release -- --ignored --show-output`
     fn test_bench() {
         use std::time::Duration;
 
