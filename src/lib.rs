@@ -118,24 +118,28 @@ impl Walker {
 
     /// Modifies the current instance of a Walker, retaining the current configuration for the
     /// Walker, but setting the maximum recursion depth to the maximum value of `depth`.
-    pub fn max_depth(mut self, depth: u32) -> Walker {
-        self.max_depth = Some(depth);
+    pub fn max_depth(mut self, depth: Option<u32>) -> Walker {
+        self.max_depth = depth;
         self
     }
 
     /// Enable following of symlinks on the current Walker when traversing through files.
     /// Once this option has been enabled for a Walker, it cannot be disabled again.
-    pub fn follow_symlinks(mut self) -> Walker {
-        self.follow_symlinks = true;
+    pub fn follow_symlinks(mut self, enable: bool) -> Walker {
+        self.follow_symlinks = enable;
         self
     }
 
     /// Prevent the Walker from entering other file systems while traversing a directory structure.
     /// This means that subdirectories of a directory that belongs to another file system will be
     /// ignored.
-    pub fn only_local_fs(mut self) -> Walker {
-        let filesystems = fs::filesystems();
-        self.ignore = fs::fs_boundaries(&filesystems, &self.origin);
+    pub fn only_local_fs(mut self, enable: bool) -> Walker {
+        if enable {
+            let filesystems = fs::filesystems();
+            self.ignore = fs::fs_boundaries(&filesystems, &self.origin);
+        } else {
+            self.ignore.clear();
+        }
         self
     }
 
@@ -304,14 +308,14 @@ mod tests {
     #[test]
     fn test_depth_only_root_dir() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = Walker::from(&dir).unwrap().max_depth(0).count();
+        let found = Walker::from(&dir).unwrap().max_depth(Some(0)).count();
         assert_eq!(1, found);
     }
 
     #[test]
     fn test_depth_one() {
         let dir = PathBuf::from(TEST_DIR);
-        let found = Walker::from(&dir).unwrap().max_depth(1).count();
+        let found = Walker::from(&dir).unwrap().max_depth(Some(1)).count();
         assert_eq!(4, found);
     }
 
@@ -373,8 +377,8 @@ mod tests {
 
     #[test]
     fn test_not_equals_different_settings() {
-        let walker0: Walker = Walker::from(TEST_DIR).unwrap().max_depth(1);
-        let walker1: Walker = Walker::from(TEST_DIR).unwrap().follow_symlinks();
+        let walker0: Walker = Walker::from(TEST_DIR).unwrap().max_depth(Some(1));
+        let walker1: Walker = Walker::from(TEST_DIR).unwrap().follow_symlinks(true);
         assert_ne!(walker0, walker1)
     }
 
