@@ -1,9 +1,9 @@
-use std::collections::VecDeque;
 use std::fmt::Formatter;
 use std::fs::ReadDir;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::{cmp::Ordering, fs::DirEntry};
+use std::{collections::VecDeque, convert::TryFrom};
 
 mod fs;
 
@@ -260,6 +260,22 @@ impl Default for Walker {
     }
 }
 
+impl TryFrom<&PathBuf> for Walker {
+    type Error = std::io::Error;
+
+    fn try_from(path: &PathBuf) -> Result<Self, Self::Error> {
+        Walker::from(path)
+    }
+}
+
+impl TryFrom<&str> for Walker {
+    type Error = std::io::Error;
+
+    fn try_from(path: &str) -> Result<Self, Self::Error> {
+        Walker::from(path)
+    }
+}
+
 impl std::cmp::Ord for Walker {
     fn cmp(&self, other: &Self) -> Ordering {
         let left: usize = current_depth(self);
@@ -300,8 +316,7 @@ impl std::cmp::PartialOrd for Walker {
 #[cfg(test)]
 mod tests {
     use crate::Walker;
-    use std::cmp::Ordering;
-    use std::path::PathBuf;
+    use std::{cmp::Ordering, convert::TryFrom, convert::TryInto, path::PathBuf};
 
     const TEST_DIR: &str = "test_dirs";
 
@@ -387,6 +402,22 @@ mod tests {
         let walker0: Walker = Walker::new().unwrap();
         let walker1: Walker = Default::default();
         assert_eq!(walker0, walker1)
+    }
+
+    #[test]
+    fn test_into_from_str() {
+        Walker::try_from(".").expect("Failed to create Walker from &str");
+    }
+
+    #[test]
+    fn test_into_from_pathbuf() {
+        let path = PathBuf::from(".");
+        Walker::try_from(&path).expect("Failed to create Walker from &PathBuf");
+    }
+
+    #[test]
+    fn test_from_conversion() {
+        let _: Walker = ".".try_into().expect("Failed to convert &str into Walker");
     }
 
     #[test]
