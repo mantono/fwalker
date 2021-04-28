@@ -50,3 +50,5 @@ which would yield the output
 "/proc/sys/fs/file-nr"
 "/proc/sys/fs/inode-nr"
 ```
+
+See also example in [examples](examples/) directory.
