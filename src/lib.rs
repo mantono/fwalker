@@ -124,7 +124,6 @@ impl Walker {
     }
 
     /// Enable following of symlinks on the current Walker when traversing through files.
-    /// Once this option has been enabled for a Walker, it cannot be disabled again.
     pub fn follow_symlinks(mut self, enable: bool) -> Walker {
         self.follow_symlinks = enable;
         self
